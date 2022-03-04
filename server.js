@@ -1,8 +1,9 @@
+const express = require('express');
 const inquirer = require('inquirer');
 const cTable = require('console.table');
 const db = require('./db/connection');
 const inputCheck = require('./utils/inputCheck');
-const express = require('express');
+// const apiRoutes = require("./routes/apiRoutes");
 
 
 const PORT = process.env.PORT || 3001;
@@ -16,6 +17,33 @@ app.use((req, res) => {
     res.status(404).end();
 });
 
+const questions = () => {
+    
+  return inquirer.prompt([
+  {
+      type: "list",
+      name: "view",
+      message: "What would you like to do?",
+      choices: ["View All Departments", "View All Roles", "View All Employees", "Add A Department", "Add A Role", "Add An Employee"]
+  }
+])
+};
+
+function init() {
+  console.log(`
+  ====================================================
+  Welcome to Your Employee Tracker! Let's Get Started!
+  ====================================================
+  `);
+  return questions();
+}
+
+init()
+    .then(answer => {
+        console.log(answer);
+    })
+
+
 
 db.connect(err => {
     if (err) throw err;
@@ -26,16 +54,19 @@ db.connect(err => {
 });
 
 
+// console.table([
+//   {
+//     name: 'foo',
+//     age: 10
+//   }, {
+//     name: 'bar',
+//     age: 20
+//   }
+// ]);
 
-
-
-
-console.table([
-  {
-    name: 'foo',
-    age: 10
-  }, {
-    name: 'bar',
-    age: 20
-  }
-]);
+// db.query(`DELETE FROM books WHERE id = ?`, deletedRow, (err, result) => {
+//   if (err) {
+//     console.log(err);
+//   }
+//   console.log(result);
+// });
