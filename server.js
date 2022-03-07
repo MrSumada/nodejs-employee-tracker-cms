@@ -3,18 +3,15 @@ const inquirer = require('inquirer');
 const cTable = require('console.table');
 const db = require('./db/connection');
 const inputCheck = require('./utils/inputCheck');
-// const apiRoutes = require('./routes/apiRoutes');
 
 const PORT = process.env.PORT || 3001;
 const app = express();
 
-app.use(express.urlencoded({ extended: false }));
-app.use(express.json());
-// app.use('/api', apiRoutes);
-
-app.use((req, res) => {
-    res.status(404).end();
-});
+// app.use(express.urlencoded({ extended: false }));
+// app.use(express.json());
+// app.use((req, res) => {
+//     res.status(404).end();
+// });
 
 
 db.connect(err => {
@@ -35,7 +32,21 @@ const questions = () => {
             choices: ["View All Departments", "View All Roles", "View All Employees", "Add A Department", "Add A Role", "Add An Employee"]
         }
     ])
+    .then(answer => {
+        if (answer = "View All Departments") {
+
+            db.query(`SELECT * FROM departments`, (err, rows) => {
+                if (err) {
+                    console.log(err);
+                }
+                console.table(rows);
+                
+                return moreQuestions();
+            });
+        }
+    })
 };
+
 
 function init() {
     console.log(`
@@ -46,16 +57,25 @@ function init() {
     return questions();
 }
 
-init()
-    .then(answer => {
-        if (answer = "View All Departments") {
+function moreQuestions() {
+    console.log(`
+    `)
 
-            db.query(`SELECT * FROM departments`, (err, rows) => {
-                if (err) {
-                    console.log(err);
-                }
-                console.table(rows);
-            });
+    return inquirer.prompt([
+        {
+            type: "confirm",
+            name: "confirm",
+            message: "Would you like to continue?",
+        }
+    ]).then( answer = (answer) => {
+        if (answer === true){
+            return questions();
+        } else {
+        console.log(`
+        Thank you for using Your Employee Tracker!
+        `);
         }
     })
-    .then()
+}
+
+init();
