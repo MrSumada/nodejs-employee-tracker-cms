@@ -3,6 +3,8 @@ const inquirer = require('inquirer');
 const cTable = require('console.table');
 const db = require('./db/connection');
 const inputCheck = require('./utils/inputCheck');
+const { json } = require('express/lib/response');
+// const { viewDepartments } = require('./utils/dbQueries')
 
 const PORT = process.env.PORT || 3001;
 const app = express();
@@ -33,9 +35,34 @@ const questions = () => {
         }
     ])
     .then(answer => {
-        if (answer = "View All Departments") {
+        const input = JSON.stringify(answer);
+        console.log(input);
+
+        if (answer == "View All Departments") {
 
             db.query(`SELECT * FROM departments`, (err, rows) => {
+                if (err) {
+                    console.log(err);
+                }
+                console.table(rows);
+                
+                return moreQuestions();
+            });
+        }
+        if (answer === "View All Roles") {
+
+            db.query(`SELECT * FROM roles`, (err, rows) => {
+                if (err) {
+                    console.log(err);
+                }
+                console.table(rows);
+                
+                return moreQuestions();
+            });
+        }
+        if (answer === "View All Employees") {
+
+            db.query(`SELECT * FROM employees`, (err, rows) => {
                 if (err) {
                     console.log(err);
                 }
