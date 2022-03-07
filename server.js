@@ -3,14 +3,14 @@ const inquirer = require('inquirer');
 const cTable = require('console.table');
 const db = require('./db/connection');
 const inputCheck = require('./utils/inputCheck');
-const apiRoutes = require('./routes/apiRoutes');
+// const apiRoutes = require('./routes/apiRoutes');
 
 const PORT = process.env.PORT || 3001;
 const app = express();
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-app.use('/api', apiRoutes);
+// app.use('/api', apiRoutes);
 
 app.use((req, res) => {
     res.status(404).end();
@@ -49,29 +49,13 @@ function init() {
 init()
     .then(answer => {
         if (answer = "View All Departments") {
-            console.log(answer);
-            return viewDepartments();
+
+            db.query(`SELECT * FROM departments`, (err, rows) => {
+                if (err) {
+                    console.log(err);
+                }
+                console.table(rows);
+            });
         }
     })
-
-
-
-
-
-
-// console.table([
-//   {
-//     name: 'foo',
-//     age: 10
-//   }, {
-//     name: 'bar',
-//     age: 20
-//   }
-// ]);
-
-// db.query(`DELETE FROM books WHERE id = ?`, deletedRow, (err, result) => {
-//   if (err) {
-//     console.log(err);
-//   }
-//   console.log(result);
-// });
+    .then()
