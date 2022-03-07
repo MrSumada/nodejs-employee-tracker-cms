@@ -2,9 +2,13 @@ const express = require("express");
 const router = express.Router();
 const db = require('../../db/connection');
 const inputCheck = require("../../utils/inputCheck");
+const cTable = require('console.table');
+
+
 
 router.get('/departments', (req, res) => {
-    const sql = `SELECT * FROM departments`;
+    const sql = `USE company
+    SELECT * FROM departments`;
 
     db.query(sql, (err, rows) =>{
         if (err) {
@@ -15,8 +19,10 @@ router.get('/departments', (req, res) => {
             message: 'Success!',
             data: rows
         });
+        console.table(rows);
     });
 });
 
 
-module.exports = router;
+
+module.exports = { router };
