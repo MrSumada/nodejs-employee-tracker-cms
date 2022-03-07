@@ -26,6 +26,7 @@ db.connect(err => {
 
 const questions = () => {
     
+    console.log(``)
     return inquirer.prompt([
         {
             type: "list",
@@ -35,41 +36,48 @@ const questions = () => {
         }
     ])
     .then(answer => {
-        const input = JSON.stringify(answer);
-        console.log(input);
+        
+        console.log(``)
 
-        if (answer == "View All Departments") {
+        if (answer.view == "View All Departments") {
+            return viewDepartments();
+        }
+        if (answer.view === "View All Roles") {
 
-            db.query(`SELECT * FROM departments`, (err, rows) => {
-                if (err) {
-                    console.log(err);
-                }
+            return viewRoles();
+        }
+        if (answer.view === "View All Employees") {
+
+            db.query(`SELECT self.id, self.first_name, self.last_name,
+            roles.title, roles.salary, departments.name AS department,
+            concat(managers.first_name,' ',managers.last_name) AS manager
+            FROM employees self
+            LEFT JOIN roles ON self.role_id = roles.id
+            LEFT JOIN departments ON roles.department_id = departments.id
+            LEFT JOIN employees managers ON managers.id = self.manager_id`
+            , (err, rows) => {
+                if (err) { console.log(err);} 
                 console.table(rows);
                 
                 return moreQuestions();
             });
         }
-        if (answer === "View All Roles") {
-
-            db.query(`SELECT * FROM roles`, (err, rows) => {
-                if (err) {
-                    console.log(err);
+        if (answer.view === "Add A Department"){
+            console.log(``)
+            return inquirer.prompt([
+                {
+                    type: "input",
+                    name: "dept_name",
+                    message: "What is the name of the new department you?",
                 }
-                console.table(rows);
-                
-                return moreQuestions();
-            });
-        }
-        if (answer === "View All Employees") {
-
-            db.query(`SELECT * FROM employees`, (err, rows) => {
-                if (err) {
-                    console.log(err);
-                }
-                console.table(rows);
-                
-                return moreQuestions();
-            });
+            ])
+            .then( response => {
+                db.query(`INSERT INTO departments (name)
+                VALUES ('${response.dept_name}')
+                `, (err, row) => {
+                    viewDepartments();
+                })
+            })
         }
     })
 };
@@ -85,8 +93,7 @@ function init() {
 }
 
 function moreQuestions() {
-    console.log(`
-    `)
+    console.log(``)
 
     return inquirer.prompt([
         {
@@ -94,8 +101,8 @@ function moreQuestions() {
             name: "confirm",
             message: "Would you like to continue?",
         }
-    ]).then( answer = (answer) => {
-        if (answer === true){
+    ]).then(answer => {
+        if (answer.confirm === true){
             return questions();
         } else {
         console.log(`
@@ -103,6 +110,28 @@ function moreQuestions() {
         `);
         }
     })
+}
+
+function viewDepartments() {
+    db.query(`SELECT departments.id, departments.name AS 'department name' FROM departments`, (err, rows) => {
+        if (err) { console.log(err);} 
+        console.table(rows);
+        return moreQuestions();
+    });
+}
+
+function viewRoles() {
+    db.query(`
+            SELECT roles.id, roles.title, roles.salary, departments.name AS department 
+            FROM roles
+            LEFT JOIN departments
+            ON roles.department_id = departments.id
+            `, (err, rows) => {
+                if (err) { console.log(err);} 
+                console.table(rows);
+                
+                return moreQuestions();
+            });
 }
 
 init();
