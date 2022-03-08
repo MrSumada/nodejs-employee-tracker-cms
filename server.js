@@ -1,27 +1,36 @@
-const express = require('express');
 const inquirer = require('inquirer');
 const cTable = require('console.table');
 const db = require('./db/connection');
 const inputCheck = require('./utils/inputCheck');
-const { json } = require('express/lib/response');
-// const { viewDepartments } = require('./utils/dbQueries')
+// const PORT = process.env.PORT || 3001;
 
-const PORT = process.env.PORT || 3001;
-const app = express();
-
-// app.use(express.urlencoded({ extended: false }));
-// app.use(express.json());
-// app.use((req, res) => {
-//     res.status(404).end();
-// });
-
-
-db.connect(err => {
-    if (err) throw err;
-    // console.log('Database connected');
-    app.listen(PORT, () => {
-        // console.log(`Server running on port ${PORT}`);
+let departmentsArray = []
+db.query(`SELECT departments.name FROM departments`, (err, rows) => {
+    if (err) { console.log(err);} 
+    departmentsArray = rows.map(dept => {
+        return dept.name;
     });
+    // console.log(departmentsArray);
+});
+
+let rolesArray = []
+db.query(`SELECT roles.title FROM roles`, (err, rows) => {
+    if (err) { console.log(err);} 
+    rolesArray = rows.map(roles => {
+        return roles.title;
+    });
+    // console.log(rolesArray);
+});
+
+let employeesArray = []
+db.query(`SELECT concat(employees.first_name,' ',employees.last_name) AS name FROM employees`, (err, rows) => {
+    if (err) { console.log(err);} 
+    employeesArray = rows.map(people => {
+        return people.name;
+    });
+    employeesArray.unshift("No Manager")
+    // console.log(employeesArray);
+    
 });
 
 const questions = () => {
@@ -48,155 +57,13 @@ const questions = () => {
             return viewEmployees();
         }
         if (answer.view === "Add A Department"){
-            return inquirer.prompt([
-                {
-                    type: "input",
-                    name: "dept_name",
-                    message: "What is the name of your company's new department?",
-                    validate: name => {
-                        if (name) {
-                            return true;
-                        } else {
-                            console.log(`Please enter a name for this role.`);
-                            return false;
-                        }
-                    }
-                }
-            ])
-            .then( response => {
-                db.query(`INSERT INTO departments (name)
-                VALUES ('${response.dept_name}')
-                `, (err, row) => {
-                    viewDepartments();
-                })
-            })
+            return addDepartment();
         }
         if (answer.view === "Add A Role"){
-            const departmentsArray = [];
-            const currentDepartments = db.query(`SELECT departments.id, departments.name FROM departments`, (err, rows) => {
-                if (err) { console.log(err);} 
-                // Turn this into an array, let departments.name be array used in choices i.e. departmentArray
-            })
-            
-
-            return inquirer.prompt([
-                {
-                    type: "input",
-                    name: "role_name",
-                    message: "What is the name of your company's the new role?",
-                    validate: name => {
-                        if (name) {
-                            return true;
-                        } else {
-                            console.log(`Please enter a name for this role.`);
-                            return false;
-                        }
-                    }
-                },
-                {
-                    type: "input",
-                    name: "salary",
-                    message: "What is the salary for this new role?",
-                    validate: number => {
-                        if (typeof parseInt(number) === "number") {
-                            return true;
-                        } else {
-                            console.log(`Please enter a number for this salary. Up to two decimals.`);
-                            return false;
-                        }
-                    }
-                },
-                {
-                    type: "list",
-                    name: "department",
-                    message: "Which department contains this new role?",
-                    choices:departmentsArray,
-                    validate: name => {
-                        if (name) {
-                            return true;
-                        } else {
-                            console.log(`Please enter a name for this role.`);
-                            return false;
-                        }
-                    }
-                }
-            ])
-            .then( response => {
-                const department_id = 2;
-
-                db.query(`INSERT INTO roles (name, salary, department_id)
-                VALUES ('${response.dept_name}, ${response.salary}, ${department_id}')
-                `, (err, row) => {
-                    viewRoles();
-                })
-            })
+            return addRole();
         }
         if (answer.view === "Add An Employee") {
-            const rolesArray = [];
-            const currentRoles = db.query(`SELECT roles.id, roles.title FROM roles`, (err, rows) => {
-                if (err) { console.log(err);} 
-            })
-            const managerArray = [];
-            const currentEmployees = db.query(`SELECT employees.id, departments.name AS 'department name' FROM departments`, (err, rows) => {
-                if (err) { console.log(err);} 
-            })
-            return inquirer.prompt([
-                {
-                    type: "input",
-                    name: "first_name",
-                    message: "What is your employee's first name?",
-                    validate: name => {
-                        if (name) {
-                            return true;
-                        } else {
-                            console.log(`Please enter a name for this role.`);
-                            return false;
-                        }
-                    }
-                },
-                {
-                    type: "input",
-                    name: "last_name",
-                    message: "What is your employee's last name?",
-                    validate: name => {
-                        if (name) {
-                            return true;
-                        } else {
-                            console.log(`Please enter a name for this role.`);
-                            return false;
-                        }
-                    }
-                },
-                {
-                    type: "list",
-                    name: "role",
-                    message: "What is your employee's role?",
-                    choices: rolesArray
-                },
-                {
-                    type: "confirm",
-                    name: "managerConfirm",
-                    message: "Does your employee have a manager?",
-                },
-                {
-                    type: "list",
-                    name: "role",
-                    message: "What is your employee's role?",
-                    when: managerConfirm === true,
-                    choices: managerArray
-                },
-            ])
-            .then( response => {
-                const role_id = 2;
-                const manager_id = 1;
-
-                db.query(`INSERT INTO employees (name, salary, role_id, manager_id)
-                VALUES ('${response.dept_name}, ${response.salary}, ${role_id}, ${manager_id}')
-                `, (err, row) => {
-                    viewRoles();
-                })
-            })
-            
+            return addEmployee();
         }
     })
 };
@@ -235,6 +102,7 @@ function viewDepartments() {
     db.query(`SELECT departments.id, departments.name AS 'department name' FROM departments`, (err, rows) => {
         if (err) { console.log(err);} 
         console.table(rows);
+        // console.log(rows);
         return moreQuestions();
     });
 }
@@ -267,6 +135,151 @@ function viewEmployees() {
         
         return moreQuestions();
     });
+}
+
+function addDepartment() {
+    return inquirer.prompt([
+        {
+            type: "input",
+            name: "dept_name",
+            message: "What is the name of your company's new department?",
+            validate: name => {
+                if (name) {
+                    return true;
+                } else {
+                    console.log(`Please enter a name for this role.`);
+                    return false;
+                }
+            }
+        }
+    ])
+    .then( response => {
+
+        departmentsArray.push(response.dept_name);
+        db.query(`INSERT INTO departments (name)
+            VALUES ('${response.dept_name}')
+            `, (err, row) => {
+                viewDepartments();
+        })
+    })
+}
+
+function addRole() {
+    return inquirer.prompt([
+        {
+            type: "input",
+            name: "role_name",
+            message: "What is the name of your company's the new role?",
+            validate: name => {
+                if (name) {
+                    return true;
+                } else {
+                    console.log(`Please enter a name for this role.`);
+                    return false;
+                }
+            }
+        },
+        {
+            type: "input",
+            name: "salary",
+            message: "What is the salary for this role?",
+            validate: number => {
+                if (typeof parseInt(number) === "number") {
+                    return true;
+                } else {
+                    console.log(`Please enter a number for this salary. Up to two decimals.`);
+                    return false;
+                }
+            }
+        },
+        {
+            type: "list",
+            name: "department",
+            message: "What is this role's department?",
+            choices: departmentsArray
+        }
+    ])
+    .then( response => {
+
+        rolesArray.push(response.role_name);
+        db.query(`SELECT departments.id FROM departments WHERE departments.name = '${response.department}'`, (err, data) => {
+            if (err) { console.log(err);} 
+            const newDepartment = data[0].id;
+
+            db.query(`INSERT INTO roles (title, salary, department_id)
+                VALUES ('${response.role_name}', '${response.salary}', '${newDepartment}')
+                `, (err, row) => {
+                    if (err) { console.log(err);} 
+                    console.log("It worked!", row);
+                    viewRoles();
+                }
+            )
+        })
+    })
+}
+
+function addEmployee() {
+
+    return inquirer.prompt([
+        {
+            type: "input",
+            name: "first_name",
+            message: "What is your employee's first name?",
+            validate: name => {
+                if (name) {
+                    return true;
+                } else {
+                    console.log(`Please enter a name for this role.`);
+                    return false;
+                }
+            }
+        },
+        {
+            type: "input",
+            name: "last_name",
+            message: "What is your employee's last name?",
+            validate: name => {
+                if (name) {
+                    return true;
+                } else {
+                    console.log(`Please enter a name for this role.`);
+                    return false;
+                }
+            }
+        },
+        {
+            type: "list",
+            name: "role",
+            message: "What is your employee's role?",
+            choices: rolesArray
+        },
+        {
+            type: "list",
+            name: "manager",
+            message: "Who is your employee's manager?",
+            choices: employeesArray
+        },
+    ])
+    .then( response => {
+        const addedEmployee = response.first_name + " " + response.last_name;
+        employeesArray.push(addedEmployee);
+
+        db.query(`SELECT employees.id FROM employees WHERE concat(employees.first_name,' ',employees.last_name) = '${addedEmployee}'`, (err, data) => {
+            if (err) {console.log(err);} 
+            const role_id = data[0].id;
+
+            db.query(`SELECT employees.id FROM employees WHERE concat(employees.first_name,' ',employees.last_name) = '${response.manager}'`, (err, info) => {
+                if (err) {console.log(err);} 
+                const manager_id = info[0].id;
+
+                db.query(`INSERT INTO employees (first_name, last_name, salary, role_id, manager_id)
+                    VALUES ('${response.first_name}','${response.last_name}', '${response.salary}', '${role_id}', '${manager_id}')
+                    `, (err, row) => {
+                        viewEmployees();
+                })
+            })
+        })
+    })
 }
 
 init();
