@@ -4,7 +4,7 @@ const db = require('./db/connection');
 const inputCheck = require('./utils/inputCheck');
 
 
-// Arrays for populating Inquirer choices
+// Arrays ued for populating Inquirer choices
 let departmentsArray = []
 db.query(`SELECT departments.name FROM departments`, (err, rows) => {
     if (err) { console.log(err);} 
@@ -30,6 +30,7 @@ db.query(`SELECT concat(employees.first_name,' ',employees.last_name) AS name FR
     employeesArray.unshift("No Manager");  
 });
 
+// this array is for Manager selections where we only want to include employees listed as managers, and only add them once each
 let uniqueManagersArray = []
 db.query(`SELECT DISTINCT concat(self.first_name,' ',self.last_name) AS name 
     FROM employees self 
@@ -37,9 +38,7 @@ db.query(`SELECT DISTINCT concat(self.first_name,' ',self.last_name) AS name
     if (err) { console.log(err);} 
     uniqueManagersArray = rows.map(managers => {
         return managers.name;
-    });
-    // console.log(uniqueManagersArray);
-    // uniqueManagersArray.unshift("No Manager");    
+    }); 
 });
 
 
@@ -54,7 +53,8 @@ const questions = () => {
             message: "What would you like to do?",
             choices: ["View All Departments", "View All Roles", "View All Employees",
             "View Employees By Manager", "View Employees By Department",
-            "Add A Department", "Add A Role", "Add An Employee", "Update An Employee's Manager"]
+            "Add A Department", "Add A Role", "Add An Employee", "Update An Employee's Manager",
+            "View Utilized Department Budget"]
         }
     ])
     .then(answer => {
@@ -86,6 +86,9 @@ const questions = () => {
         }
         if (answer.view === "Update An Employee's Manager") {
             return updateEmployeeManager();
+        }
+        if (answer.view === "View Utilized Department Budget") {
+            return viewUtilizedBudget();
         }
     })
 };
@@ -466,6 +469,22 @@ function updateEmployeeManager() {
     })
 }
 
+function viewUtilizedBudget() {
+
+    // query department name and sum of salaries from each employee in that department
+    db.query(`
+        SELECT departments.name AS department, SUM (roles.salary) AS budget
+        FROM employees
+        LEFT JOIN roles ON employees.role_id = roles.id
+        LEFT JOIN departments ON roles.department_id = departments.id
+        GROUP BY departments.name
+        `, (err, rows) => {
+            if (err) { console.log(err);} 
+            console.table(rows);
+            
+            return moreQuestions();
+        });
+}
 
 // Initialize app
 init();
