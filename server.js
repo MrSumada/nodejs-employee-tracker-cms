@@ -52,9 +52,9 @@ const questions = () => {
             message: "What would you like to do?",
             choices: ["View All Departments", "View All Roles", "View All Employees",
             "View Employees By Manager", "View Employees By Department",
-            "Add A Department", "Add A Role", "Add An Employee", "Update An Employee's Role", 
-            "Update An Employee's Manager",
-            "Delete A Department", "View Utilized Department Budget"]
+            "Add A Department", "Add A Role", "Add An Employee",
+            "Update An Employee's Role", "Update An Employee's Manager",
+            "Delete A Department", "Delete A Role", "Delete An Employee", "View Utilized Department Budget"]
         }
     ])
     .then(answer => {
@@ -92,6 +92,12 @@ const questions = () => {
         }
         if (answer.view === "Delete A Department") {
             return deleteDepartment();
+        }
+        if (answer.view === "Delete A Role") {
+            return deleteRole();
+        }
+        if (answer.view === "Delete An Employee") {
+            return deleteEmployee();
         }
         if (answer.view === "View Utilized Department Budget") {
             return viewUtilizedBudget();
@@ -430,6 +436,47 @@ function addEmployee() {
     })
 }
 
+function updateEmployeeRole() {
+
+    return inquirer.prompt([
+        {
+            type: "list",
+            name: "employee",
+            message: "Which employee's would you like to update?",
+            choices: employeesArray
+        },
+        {
+            type: "list",
+            name: "role",
+            message: "What is this employee's new role?",
+            choices: rolesArray
+        }
+    ])
+    .then( response => {
+
+        // query ids for corresponding employee names
+        db.query(`SELECT employees.id FROM employees WHERE concat(employees.first_name,' ',employees.last_name) = '${response.employee}'`
+            , (err, row) => {
+        if (err) { console.log(err);} 
+        const employee_id = row[0].id;
+
+        // query role's id from corresponding title
+        db.query(`SELECT roles.id FROM roles WHERE roles.title = '${response.role}'`, (err, info) => {
+            if (err) {console.log(err);} 
+            const role_id = info[0].id;
+
+            // update manager_id for given employee_id
+            db.query(`UPDATE employees SET role_id = ? WHERE id = ?`, [role_id, employee_id]
+                , (err, row) => {
+                    if (err) {console.log(err);} 
+                    
+                    viewEmployees();
+                })
+            })
+        })
+    })
+}
+
 function updateEmployeeManager() {
     return inquirer.prompt([
         {
@@ -523,53 +570,72 @@ function deleteDepartment() {
     })
 }
 
-function updateEmployeeRole() {
+function deleteRole() {
+    return inquirer.prompt([
+        {
+            type: "list",
+            name: "role",
+            message: "Which role would you like to delete?",
+            choices: rolesArray
+        },
+        {
+            type: "confirm",
+            name: "deleteCheck",
+            message: "Are you sure you want to delete this role?"
+        }
+    ])
+    .then( response => {
+        // if delete is confirmed, remove from db and array
+        if (response.deleteCheck) {
 
+            const index = rolesArray.findIndex((job) => job === response.role);
+            rolesArray.splice(index, 1);
+
+            db.query(`DELETE FROM roles WHERE title = '${response.role}'`,
+            (err, row) => {
+                if (err) {console.log(err);}
+                
+                return viewRoles();
+            })
+            
+        } else {
+            return moreQuestions();
+        }
+    })
+}
+
+function deleteEmployee() {
     return inquirer.prompt([
         {
             type: "list",
             name: "employee",
-            message: "Which employee's would you like to update?",
+            message: "Which role would you like to delete?",
             choices: employeesArray
         },
         {
-            type: "list",
-            name: "role",
-            message: "What is this employee's new role?",
-            choices: rolesArray
+            type: "confirm",
+            name: "deleteCheck",
+            message: "Are you sure you want to delete this employee?"
         }
     ])
     .then( response => {
+        // if delete is confirmed, remove from db and array
+        if (response.deleteCheck) {
 
-        // query ids for corresponding employee names
-        db.query(`SELECT employees.id FROM employees WHERE concat(employees.first_name,' ',employees.last_name) = '${response.employee}'`
-            , (err, row) => {
-        if (err) { console.log(err);} 
-        const employee_id = row[0].id;
+            const index = employeesArray.findIndex((person) => person === response.employee);
+            employeesArray.splice(index, 1);
 
-        // query role's id from corresponding title
-        db.query(`SELECT roles.id FROM roles WHERE roles.title = '${response.role}'`, (err, info) => {
-            if (err) {console.log(err);} 
-            const role_id = info[0].id;
-
-            // update manager_id for given employee_id
-            db.query(`UPDATE employees SET role_id = ? WHERE id = ?`, [role_id, employee_id]
-                , (err, row) => {
-                    if (err) {console.log(err);} 
-                    
-                    viewEmployees();
-                })
+            db.query(`DELETE FROM employees WHERE concat(employees.first_name,' ',employees.last_name) = '${response.employee}'`,
+            (err, row) => {
+                if (err) {console.log(err);}
+                
+                return viewEmployees();
             })
-        })
+            
+        } else {
+            return moreQuestions();
+        }
     })
-}
-
-function deleteRole() {
-
-}
-
-function deleteEmployee() {
-
 }
 
 function viewUtilizedBudget() {
@@ -580,6 +646,7 @@ function viewUtilizedBudget() {
         FROM employees
         LEFT JOIN roles ON employees.role_id = roles.id
         LEFT JOIN departments ON roles.department_id = departments.id
+        WHERE departments.name IS NOT NULL
         GROUP BY departments.name
         `, (err, rows) => {
             if (err) { console.log(err);} 
