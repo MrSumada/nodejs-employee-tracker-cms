@@ -54,7 +54,7 @@ const questions = () => {
             choices: ["View All Departments", "View All Roles", "View All Employees",
             "View Employees By Manager", "View Employees By Department",
             "Add A Department", "Add A Role", "Add An Employee", "Update An Employee's Manager",
-            "View Utilized Department Budget"]
+            "Delete A Department", "View Utilized Department Budget"]
         }
     ])
     .then(answer => {
@@ -86,6 +86,9 @@ const questions = () => {
         }
         if (answer.view === "Update An Employee's Manager") {
             return updateEmployeeManager();
+        }
+        if (answer.view === "Delete A Department") {
+            return deleteDepartment();
         }
         if (answer.view === "View Utilized Department Budget") {
             return viewUtilizedBudget();
@@ -466,6 +469,37 @@ function updateEmployeeManager() {
                     })
             }
         })
+    })
+}
+
+function deleteDepartment() {
+
+
+
+    return inquirer.prompt([
+        {
+            type: "list",
+            name: "department",
+            message: "Which department would you like to delete?",
+            choices: departmentsArray
+        },
+        {
+            type: "confirm",
+            name: "deleteCheck",
+            message: "Are you sure you want to delete this department?"
+        }
+    ])
+    .then( response => {
+        if (response.deleteCheck) {
+            db.query(`DELETE FROM departments WHERE name = '${response.department}'`,
+            (err, row) => {
+                if (err) {console.log(err);}
+                
+                viewDepartments();
+            })
+        } else {
+            moreQuestions();
+        }
     })
 }
 
