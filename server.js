@@ -26,8 +26,7 @@ db.query(`SELECT concat(employees.first_name,' ',employees.last_name) AS name FR
     if (err) { console.log(err);} 
     employeesArray = rows.map(people => {
         return people.name;
-    });  
-    employeesArray.unshift("No Manager");  
+    });
 });
 
 // this array is for Manager selections where we only want to include employees listed as managers, and only add them once each
@@ -53,7 +52,8 @@ const questions = () => {
             message: "What would you like to do?",
             choices: ["View All Departments", "View All Roles", "View All Employees",
             "View Employees By Manager", "View Employees By Department",
-            "Add A Department", "Add A Role", "Add An Employee", "Update An Employee's Manager",
+            "Add A Department", "Add A Role", "Add An Employee", "Update An Employee's Role", 
+            "Update An Employee's Manager",
             "Delete A Department", "View Utilized Department Budget"]
         }
     ])
@@ -83,6 +83,9 @@ const questions = () => {
         }
         if (answer.view === "Add An Employee") {
             return addEmployee();
+        }
+        if (answer.view === "Update An Employee's Role") {
+            return updateEmployeeRole();
         }
         if (answer.view === "Update An Employee's Manager") {
             return updateEmployeeManager();
@@ -333,6 +336,9 @@ function addRole() {
 
 function addEmployee() {
 
+    // Add No Manager option to inquirer choices
+    employeesArray.unshift("No Manager"); 
+
     return inquirer.prompt([
         {
             type: "input",
@@ -375,6 +381,9 @@ function addEmployee() {
     ])
     .then( response => {
         const addedEmployee = response.first_name + " " + response.last_name;
+
+        // remove no manager option from employees array
+        employeesArray.splice(0, 1);
         // push into employees array, so future inquirers featuring the employees array will be updated
         employeesArray.push(addedEmployee);
 
@@ -473,9 +482,6 @@ function updateEmployeeManager() {
 }
 
 function deleteDepartment() {
-
-
-
     return inquirer.prompt([
         {
             type: "list",
@@ -490,17 +496,80 @@ function deleteDepartment() {
         }
     ])
     .then( response => {
+        // if delete is confirmed, remove from db and array
         if (response.deleteCheck) {
+
+            const index = departmentsArray.findIndex((dept) => dept === response.department);
+            departmentsArray.splice(index, 1);
+
             db.query(`DELETE FROM departments WHERE name = '${response.department}'`,
             (err, row) => {
                 if (err) {console.log(err);}
+
+                // removes affected roles from roles array
+                db.query(`SELECT roles.title FROM roles`, (err, rows) => {
+                    if (err) { console.log(err);} 
+                    rolesArray = rows.map(roles => {
+                        return roles.title;
+                    });
+                });
                 
-                viewDepartments();
+                return viewDepartments();
             })
+            
         } else {
-            moreQuestions();
+            return moreQuestions();
         }
     })
+}
+
+function updateEmployeeRole() {
+
+    return inquirer.prompt([
+        {
+            type: "list",
+            name: "employee",
+            message: "Which employee's would you like to update?",
+            choices: employeesArray
+        },
+        {
+            type: "list",
+            name: "role",
+            message: "What is this employee's new role?",
+            choices: rolesArray
+        }
+    ])
+    .then( response => {
+
+        // query ids for corresponding employee names
+        db.query(`SELECT employees.id FROM employees WHERE concat(employees.first_name,' ',employees.last_name) = '${response.employee}'`
+            , (err, row) => {
+        if (err) { console.log(err);} 
+        const employee_id = row[0].id;
+
+        // query role's id from corresponding title
+        db.query(`SELECT roles.id FROM roles WHERE roles.title = '${response.role}'`, (err, info) => {
+            if (err) {console.log(err);} 
+            const role_id = info[0].id;
+
+            // update manager_id for given employee_id
+            db.query(`UPDATE employees SET role_id = ? WHERE id = ?`, [role_id, employee_id]
+                , (err, row) => {
+                    if (err) {console.log(err);} 
+                    
+                    viewEmployees();
+                })
+            })
+        })
+    })
+}
+
+function deleteRole() {
+
+}
+
+function deleteEmployee() {
+
 }
 
 function viewUtilizedBudget() {
