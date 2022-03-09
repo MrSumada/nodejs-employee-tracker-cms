@@ -2,7 +2,6 @@ const inquirer = require('inquirer');
 const cTable = require('console.table');
 const db = require('./db/connection');
 const inputCheck = require('./utils/inputCheck');
-// const PORT = process.env.PORT || 3001;
 
 let departmentsArray = []
 db.query(`SELECT departments.name FROM departments`, (err, rows) => {
@@ -10,7 +9,6 @@ db.query(`SELECT departments.name FROM departments`, (err, rows) => {
     departmentsArray = rows.map(dept => {
         return dept.name;
     });
-    // console.log(departmentsArray);
 });
 
 let rolesArray = []
@@ -19,7 +17,6 @@ db.query(`SELECT roles.title FROM roles`, (err, rows) => {
     rolesArray = rows.map(roles => {
         return roles.title;
     });
-    // console.log(rolesArray);
 });
 
 let employeesArray = []
@@ -27,10 +24,16 @@ db.query(`SELECT concat(employees.first_name,' ',employees.last_name) AS name FR
     if (err) { console.log(err);} 
     employeesArray = rows.map(people => {
         return people.name;
+    });  
+});
+
+let managersArray = []
+db.query(`SELECT concat(employees.first_name,' ',employees.last_name) AS name FROM employees`, (err, rows) => {
+    if (err) { console.log(err);} 
+    managersArray = rows.map(managers => {
+        return managers.name;
     });
-    employeesArray.unshift("No Manager")
-    // console.log(employeesArray);
-    
+    managersArray.unshift("No Manager");    
 });
 
 const questions = () => {
@@ -41,7 +44,7 @@ const questions = () => {
             type: "list",
             name: "view",
             message: "What would you like to do?",
-            choices: ["View All Departments", "View All Roles", "View All Employees", "Add A Department", "Add A Role", "Add An Employee"]
+            choices: ["View All Departments", "View All Roles", "View All Employees", "Add A Department", "Add A Role", "Add An Employee", "Update An Employee's Manager"]
         }
     ])
     .then(answer => {
@@ -65,9 +68,11 @@ const questions = () => {
         if (answer.view === "Add An Employee") {
             return addEmployee();
         }
+        if (answer.view === "Update An Employee's Manager") {
+            return updateEmployeeManager();
+        }
     })
 };
-
 
 function init() {
     console.log(`
@@ -80,7 +85,6 @@ function init() {
 
 function moreQuestions() {
     console.log(``)
-
     return inquirer.prompt([
         {
             type: "confirm",
@@ -184,10 +188,11 @@ function addRole() {
             name: "salary",
             message: "What is the salary for this role?",
             validate: number => {
-                if (typeof parseInt(number) === "number") {
+                if (!isNaN(parseInt(number))) {
                     return true;
                 } else {
-                    console.log(`Please enter a number for this salary. Up to two decimals.`);
+                    console.log(`
+                    Please enter a number for this salary. Up to two decimals.`);
                     return false;
                 }
             }
@@ -210,7 +215,6 @@ function addRole() {
                 VALUES ('${response.role_name}', '${response.salary}', '${newDepartment}')
                 `, (err, row) => {
                     if (err) { console.log(err);} 
-                    console.log("It worked!", row);
                     viewRoles();
                 }
             )
@@ -257,29 +261,92 @@ function addEmployee() {
             type: "list",
             name: "manager",
             message: "Who is your employee's manager?",
-            choices: employeesArray
+            choices: managersArray
         },
     ])
     .then( response => {
         const addedEmployee = response.first_name + " " + response.last_name;
         employeesArray.push(addedEmployee);
+        managersArray.push(addedEmployee);
+        // console.log(addedEmployee);
 
-        db.query(`SELECT employees.id FROM employees WHERE concat(employees.first_name,' ',employees.last_name) = '${addedEmployee}'`, (err, data) => {
+        db.query(`SELECT roles.id FROM roles WHERE roles.title = '${response.role}'`, (err, data) => {
             if (err) {console.log(err);} 
             const role_id = data[0].id;
+            console.log(role_id);
 
-            db.query(`SELECT employees.id FROM employees WHERE concat(employees.first_name,' ',employees.last_name) = '${response.manager}'`, (err, info) => {
-                if (err) {console.log(err);} 
-                const manager_id = info[0].id;
+            if (response.manager !== "No Manager") {
+                db.query(`SELECT employees.id FROM employees WHERE concat(employees.first_name,' ',employees.last_name) = '${response.manager}'`, (err, info) => {
+                    if (err) {console.log(err);} 
+                    const manager_id = info[0].id;
+                    console.log(manager_id);
 
-                db.query(`INSERT INTO employees (first_name, last_name, salary, role_id, manager_id)
-                    VALUES ('${response.first_name}','${response.last_name}', '${response.salary}', '${role_id}', '${manager_id}')
-                    `, (err, row) => {
-                        viewEmployees();
+                    db.query(`INSERT INTO employees (first_name, last_name, role_id, manager_id)
+                        VALUES ('${response.first_name}','${response.last_name}', '${role_id}', '${manager_id}')
+                        `, (err, row) => {
+                            if (err) {console.log(err);} 
+                            // console.log(row);
+                            viewEmployees();
+                    })
                 })
-            })
+            } else {
+            db.query(`INSERT INTO employees (first_name, last_name, role_id, manager_id)
+                        VALUES ('${response.first_name}','${response.last_name}', '${role_id}', null)
+                        `, (err, row) => {
+                            if (err) {console.log(err);} 
+                            // console.log(row);
+                            viewEmployees();
+                    })
+            }
         })
     })
+}
+
+function updateEmployeeManager() {
+    return inquirer.prompt([
+        {
+            type: "list",
+            name: "employee",
+            message: "Which employee's would you like to update?",
+            choices: employeesArray
+        },
+        {
+            type: "list",
+            name: "manager",
+            message: "Who is this employee's manager?",
+            choices: managersArray
+        }
+    ])
+    .then( response => {
+
+        db.query(`SELECT employees.id FROM employees WHERE concat(employees.first_name,' ',employees.last_name) = '${response.employee}'`
+            , (err, row) => {
+        if (err) { console.log(err);} 
+        const employee_id = row[0].id;
+
+            if (response.manager !== "No Manager") {
+                db.query(`SELECT employees.id FROM employees WHERE concat(employees.first_name,' ',employees.last_name) = '${response.manager}'`, (err, info) => {
+                    if (err) {console.log(err);} 
+                    const manager_id = info[0].id;
+
+                    db.query(`UPDATE employees SET manager_id = ? WHERE id = ?`, [manager_id, employee_id]
+                        , (err, row) => {
+                            if (err) {console.log(err);} 
+                            
+                            viewEmployees();
+                    })
+                })
+            } else {
+                db.query(`UPDATE employees SET manager_id = ? WHERE id = ?`, [null, employee_id]
+                        , (err, row) => {
+                            if (err) {console.log(err);} 
+                            
+                            viewEmployees();
+                    })
+            }
+        })
+    })
+    
 }
 
 init();
