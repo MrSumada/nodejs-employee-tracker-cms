@@ -1,7 +1,6 @@
 const inquirer = require('inquirer');
 const cTable = require('console.table');
 const db = require('./db/connection');
-const inputCheck = require('./utils/inputCheck');
 
 
 // Arrays ued for populating Inquirer choices
@@ -395,7 +394,7 @@ function addEmployee() {
 
         // check if new employee's manager is in the unique manager array already, if NOT push them to it
         // this will affect future inquirers using the unique manager array
-        if (!uniqueManagersArray.includes(response.manager)) {
+        if (!uniqueManagersArray.includes(response.manager) && response.manager !== "No Manager") {
             uniqueManagersArray.push(response.manager);
         }
 
@@ -560,10 +559,8 @@ function deleteDepartment() {
                         return roles.title;
                     });
                 });
-                
                 return viewDepartments();
             })
-            
         } else {
             return moreQuestions();
         }
