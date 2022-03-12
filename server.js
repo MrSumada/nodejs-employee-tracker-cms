@@ -2,7 +2,6 @@ const inquirer = require('inquirer');
 const cTable = require('console.table');
 const db = require('./db/connection');
 
-
 // Arrays ued for populating Inquirer choices
 let departmentsArray = []
 db.query(`SELECT departments.name FROM departments`, (err, rows) => {
@@ -131,7 +130,9 @@ function moreQuestions() {
         } else {
         console.log(`
         Thank you for using Your Employee Tracker!
-        `);
+        `)
+        
+        process.exit();
         }
     })
 }
