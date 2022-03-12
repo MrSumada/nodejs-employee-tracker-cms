@@ -51,7 +51,7 @@ const questions = () => {
             choices: ["View All Departments", "View All Roles", "View All Employees",
             "View Employees By Manager", "View Employees By Department",
             "Add A Department", "Add A Role", "Add An Employee",
-            "Update An Employee's Role", "Update An Employee's Manager",
+            "Update An Employee's Role", "Update An Employee's Manager", "Update A Role's Salary",
             "Delete A Department", "Delete A Role", "Delete An Employee", "View Utilized Department Budget"]
         }
     ])
@@ -87,6 +87,9 @@ const questions = () => {
         }
         if (answer.view === "Update An Employee's Manager") {
             return updateEmployeeManager();
+        }
+        if (answer.view === "Update A Role's Salary") {
+            return updateRoleSalary();
         }
         if (answer.view === "Delete A Department") {
             return deleteDepartment();
@@ -489,7 +492,7 @@ function updateEmployeeManager() {
             type: "list",
             name: "manager",
             message: "Who is this employee's manager?",
-            choices: managersArray
+            choices: employeesArray
         }
     ])
     .then( response => {
@@ -500,8 +503,18 @@ function updateEmployeeManager() {
         if (err) { console.log(err);} 
         const employee_id = row[0].id;
 
+            // if same name chosen for both manager and employee
+            if (response.manager === response.employee) {
+                console.log(`
+                An employee cannot be their own manager!
+                
+                Let's start that again.
+                
+                `)
+                return updateEmployeeManager();
+                
             // if manager is selected
-            if (response.manager !== "No Manager") {
+            } else if (response.manager !== "No Manager") {
                 // query manager's id from corresponding name
                 db.query(`SELECT employees.id FROM employees WHERE concat(employees.first_name,' ',employees.last_name) = '${response.manager}'`, (err, info) => {
                     if (err) {console.log(err);} 
@@ -527,6 +540,51 @@ function updateEmployeeManager() {
         })
     })
 }
+
+function updateRoleSalary() {
+
+    return inquirer.prompt([
+        {
+            type: "list",
+            name: "role",
+            message: "For which role's would you like to change the salary?",
+            choices: rolesArray
+        },
+        {
+            type: "input",
+            name: "salary",
+            message: "What is the new salary for this role?",
+            validate: number => {
+                if (!isNaN(parseInt(number))) {
+                    return true;
+                } else {
+                    console.log(`
+                    Please enter a number for this salary. Up to two decimals.`);
+                    return false;
+                }
+            }
+        }
+    ])
+    .then( response => {
+
+        // query ids for corresponding role names
+        db.query(`SELECT roles.id FROM roles WHERE roles.title = '${response.role}'`
+            , (err, row) => {
+        if (err) { console.log(err);} 
+        const id = row[0].id;
+
+        // update salary for given id
+        db.query(`UPDATE roles SET salary = ? WHERE id = ?`, [response.salary, id]
+            , (err, row) => {
+                if (err) {console.log(err);} 
+                
+                viewRoles();
+            })
+        })
+    })
+}
+
+
 
 function deleteDepartment() {
     return inquirer.prompt([
