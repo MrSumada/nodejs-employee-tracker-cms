@@ -1,6 +1,6 @@
 # Employee Tracker CMS
 
-<img width="1048" alt="employee-worker-cms-screenshot" src='./assets/images/cms_screenshot'>
+<img width="1048" alt="employee-worker-cms-screenshot" src='assets/images/cms_screenshot.png'>
 
 ## Usage
 
@@ -12,7 +12,7 @@ A simple Command Line employee tracker for managing several aspects of your comp
 
 ## Installation
 
-Just clone this repository and run npm install mysql2 sequelize console.table, and you're ready to go.
+Just clone this repository and run npm install mysql2 sequelize console.table, and then you're ready to go.
 
 
 ## Questions?
