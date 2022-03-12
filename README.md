@@ -17,16 +17,22 @@ Just clone this repository and run npm install mysql2 sequelize console.table, a
 ## Test
 
 The db.sql, schema.sql, and seeds.sql files are included. Launch the mysql server with your username and password: 
-mysql -u <your_username> -p
+
+`mysql -u <your_username> -p`
+
 And then enter your mysql password. 
 
+
 Then from the mysql monitor run the following commands:
-source db/db.sql
-source db/schema.sql
-source db/seeds.sql
+
+`source db/db.sql`
+`source db/schema.sql`
+`source db/seeds.sql`
+
 And your database will be seeded with example departments, roles, and employees.
 To return to an empty database, repeat the previous commands, but do not run:
-source db/seeds.sql
+
+`source db/seeds.sql`
 
 
 ## Questions?
